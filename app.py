@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template_string
 
 app = Flask(__name__)
 
@@ -23,12 +23,12 @@ books = [
 def home():
     return "Welcome to the Book API!"
 
-# Get all books
+# Get all books in JSON
 @app.route('/books', methods=['GET'])
 def get_books():
     return jsonify(books)
 
-# Get a single book by ID
+# Get a single book in JSON
 @app.route('/books/<int:book_id>', methods=['GET'])
 def get_book(book_id):
     book = next((b for b in books if b["id"] == book_id), None)
@@ -36,7 +36,37 @@ def get_book(book_id):
         return jsonify(book)
     return jsonify({"error": "Book not found"}), 404
 
-# Add a new book
+# Render a book in HTML with image and details
+@app.route('/books/view/<int:book_id>', methods=['GET'])
+def view_book(book_id):
+    book = next((b for b in books if b["id"] == book_id), None)
+    if not book:
+        return "<h2>Book not found</h2>", 404
+
+    html_template = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>{{ book.title }}</title>
+        <style>
+            body { font-family: Arial; text-align: center; padding: 50px; }
+            img { max-width: 300px; height: auto; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+            .details { margin-top: 20px; }
+        </style>
+    </head>
+    <body>
+        <h1>{{ book.title }}</h1>
+        <img src="{{ book.image_url }}" alt="Book Image">
+        <div class="details">
+            <p><strong>Author:</strong> {{ book.author }}</p>
+            <p><strong>ID:</strong> {{ book.id }}</p>
+        </div>
+    </body>
+    </html>
+    """
+    return render_template_string(html_template, book=book)
+
+# Add a new book with optional image_url
 @app.route('/books', methods=['POST'])
 def add_book():
     new_book = request.get_json()
@@ -45,6 +75,6 @@ def add_book():
     books.append(new_book)
     return jsonify(new_book), 201
 
-# Run the app on default port 5000
+# Run the app
 if __name__ == '__main__':
     app.run(debug=True)
